@@ -39,6 +39,7 @@ public:
     inline const char * GetCurBuffer() { return buff_; }
     void SaveChar(char);
     inline void ResetBuffer() { curLen_ = 0; }
+    inline int GetCurLen() { return curLen_; }
 private:
     char *buff_;
     int capacity_;

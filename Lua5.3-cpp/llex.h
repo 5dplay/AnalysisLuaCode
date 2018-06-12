@@ -64,9 +64,26 @@ union TokenValue{
 };
 
 struct Token{
-    TokenType type;
+    int type;
     TokenValue value;
 };
+
+namespace std{
+    template<>
+    struct hash<string*>
+    {
+        size_t operator() (const string* &str){
+            return hash<string>()(*str);
+        }
+    };
+    template<>
+    struct equal_to<string*>
+    {
+        bool operator() (const string* &lhs, const string* &rhs){
+            return *lhs == *rhs;
+        }
+    };
+}
 
 class Lex{
 
@@ -80,7 +97,10 @@ private:
     inline bool CurIsNewLine() { return curChar_ == '\n' || curChar_ == '\r'; }
     void IncreaseLineCounter();
     int CountSep();
-    void ReadLongString();
+    void ReadLongString(Token*, bool, int);
+    bool CheckCurChar(char);
+    bool CheckCurChar(char, char);
+    void ReadShortString(Token*, char);
     int curChar_;        //current character in read
     int lineCounter_;    //input line counter
     int lastLineRead_;   //line of last token 'consumed'
@@ -90,7 +110,7 @@ private:
     IOReader io;//input stream
     // std::string *source; //current source file name
     // std::string *envn;  //environment variable name
-    std::unordered_set<std::string> strTable;
+    std::unordered_set<std::string*> strTable;
 };
 
 #endif //LUACPP_LLEX_H_

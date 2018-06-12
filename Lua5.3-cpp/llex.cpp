@@ -46,6 +46,7 @@ Lex::Lex(char *filePath, char curChar)
 
 Token Lex::GetNextToken()
 {
+    Token res;
     singleTokenBuffer.ResetBuffer();
     for(;;){
         switch(curChar_){
@@ -69,7 +70,7 @@ Token Lex::GetNextToken()
                         singleTokenBuffer.ResetBuffer();//'count_sep' may dirty the buffer
                         if(sep>=0)//long comment
                         {
-                            ReadLongString(sep);
+                            ReadLongString(nullptr, sep);
                             singleTokenBuffer.ResetBuffer();
                             break;
                         }
@@ -78,6 +79,77 @@ Token Lex::GetNextToken()
                     while( !CurIsNewLine() && (curChar_ != EOZ) )
                         Next();
                     break;
+                }
+            case '[':
+                {
+                    int sep = CountSep();
+                    if(sep>=0){
+                        ReadLongString(&tt, sep);
+                        tt.type = TK_STRING;
+                        return tt;
+                    }
+                }
+            case '=':
+                {
+                    Next();
+                    if(CheckCurChar('='))
+                        tt.type = TK_EQ;
+                    else
+                        tt.type = '=';
+                    return tt;
+                }
+            case '<':
+                {
+                    Next();
+                    if(CheckCurChar('='))
+                        tt.type = TK_LE;
+                    else if(CheckCurChar('<'))
+                        tt.type = TK_SHL;
+                    else
+                        tt.type = '<';
+                    return tt;
+                }
+            case '>':
+                {
+                    Next();
+                    if(CheckCurChar('='))
+                        tt.type = TK_GE;
+                    else if(CheckCurChar('<'))
+                        tt.type = TK_SHR;
+                    else
+                        tt.type = '>';
+                    return tt;
+                }
+            case '/':
+                {
+                    Next();
+                    if(CheckCurChar('/'))
+                        tt.type = TK_IDIV;
+                    else
+                        tt.type = '/';
+                    return tt;
+                }
+            case '~':
+                {
+                    Next();
+                    if(CheckCurChar('='))
+                        tt.type = TK_NE;
+                    else
+                        tt.type = '~';
+                    return tt;
+                }
+            case ':':
+                {
+                    Next();
+                    if(CheckCurChar(':'))
+                        tt.type = TK_DBCOLON;
+                    else
+                        tt.type = ':';
+                    return tt;
+                }
+            case '"': case '\'':
+                {
+                    ReadShortString(&tt, curChar_);
                 }
         }
     }
@@ -123,7 +195,95 @@ void Lex::IncreaseLineCounter()
     }
 }
 
-void Lex::ReadLongString(int sepNum)
+void Lex::ReadLongString(Token* tt, int sepNum)
 {
     int beginLine = lineCounter_;
+    SaveAndNext();//skip 2nd '['
+    if(CurIsNewLine())
+        IncreaseLineCounter();
+    for(;;)
+    {
+        switch(curChar_)
+        {
+            case EOZ://unfinished string
+            {
+                cerr<<"unfinished string"<<std::endl;
+                ERROR_EXIT;
+            }
+            case ']':
+            {
+                if(CountSep()==sepNum){
+                    SaveAndNext();
+                    goto EndLoop;
+                }
+                break;
+            }
+            case '\n': case '\r':
+            {
+                singleTokenBuffer.SaveChar('\n');
+                IncreaseLineCounter();
+                if(tt==nullptr)
+                    singleTokenBuffer.ResetBuffer();
+                break;
+            }
+            default:
+            {
+                if(tt!=nullptr)
+                    SaveAndNext();
+                else
+                    Next();
+            }
+        }
+        EndLoop:
+        if(tt!=nullptr)
+        {
+            const char* buff = singleTokenBuffer.GetCurBuffer();
+            int len = singleTokenBuffer.GetCurLen();
+            std::string * newStr = new std::string(buff+2+sepNum, len-2*(2+sepNum));
+            auto got = strTable.find(newStr);
+            if(got == strTable.end()){
+                tt->value.str = newStr;
+                strTable.insert(newStr);
+            }else{
+                tt->value.str = *got;
+                delete newStr;
+            }
+        }
+    }
+}
+
+//use for operator, no need to save
+bool Lex::CheckCurChar(char check)
+{
+    if(curChar_ == check){
+        Next();
+        return true;
+    }
+    return false;
+}
+
+/*
+** Check whether current char is in set 'set' (with two chars) and
+** saves it, use for number
+*/
+bool Lex::CheckCurChar(char lhs, char rhs)
+{
+    if(curChar_ == lhs || curChar_ == rhs){
+        SaveAndNext();
+        return true;
+    }
+    return false;
+}
+
+void Lex::ReadLongString(Token *tt, int del)
+{
+    SaveAndNext(); // keep delimiter (for error messages)
+    while(curChar_!=del)
+    {
+        switch(curChar_)
+    }
+    const char* str = "asd
+    asdsadadasd
+    ";
+    
 }
