@@ -25,11 +25,12 @@ Buffer Stream and Input Stream Handler
 #include "lzio.h"
 #include "luaconf.h"
 #include <iostream>
+#include <fstream>
 
 using std::cerr;
 
 
-Buffer::Buffer(int buffCapacity= Buffer::BUFFER_MIN_SIZE)
+Buffer::Buffer(int buffCapacity)
     : capacity_(buffCapacity), curLen_(0)
 {
     capacity_ = buffCapacity > 0 ? buffCapacity : BUFFER_MIN_SIZE;
@@ -43,7 +44,7 @@ void Buffer::SaveChar(char ch)
             cerr<<"out of BUFFER_MAX_SIZE"<<std::endl;
             ERROR_EXIT;
         }
-        char *newBuffer = realloc(buff_, curLen_ * 2);
+        char *newBuffer = (char *)realloc(buff_, curLen_ * 2);
         if(newBuffer==nullptr){
             ERROR_EXIT;
         }
@@ -58,29 +59,29 @@ IOReader::IOReader(char* filePath)
     if(filePath_==nullptr){
         inputStream_ = &(std::cin);
     }else{
-        inputStream_ =  new std::ifstream(filePath, std::ios::binary);
+        inputStream_ =  dynamic_cast<std::istream* >(new std::ifstream(filePath, std::ios::binary));
 
     }
 }
 IOReader::~IOReader()
 {
-    if(inputfile_stream==nullptr)
+    if(inputStream_==nullptr)
         return;
     if(inputStream_!= (&(std::cin) ) ){
-        std::ifstream* inputfile_stream = dynamic_cast<std::ifstream* > inputStream_;
+        std::ifstream* inputfile_stream = dynamic_cast<std::ifstream* >(inputStream_);
         if(inputfile_stream->is_open()){
             inputfile_stream->close();
         }
         delete inputfile_stream;
     }
-    inputfile_stream = nullptr;
+    inputStream_ = nullptr;
 
 }
 
 int IOReader::GetNextChar()
 {
     if(inputStream_->good()){
-        return inputStream_.get();
+        return inputStream_->get();
     }else{
         return EOZ;//end of stream
     }

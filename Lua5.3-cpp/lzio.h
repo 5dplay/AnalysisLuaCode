@@ -40,6 +40,7 @@ public:
     void SaveChar(char);
     inline void ResetBuffer() { curLen_ = 0; }
     inline int GetCurLen() { return curLen_; }
+    inline void RemoveBuffer(int n) { curLen_ -= n; }
 private:
     char *buff_;
     int capacity_;
@@ -58,7 +59,7 @@ public:
 private:
     char *filePath_;// nullptr for stdin, otherwise file path
     int curLine_;
-    istream* inputStream_;
+    std::istream* inputStream_;
 };
 
 #endif //LUACPP_LZIO_H_

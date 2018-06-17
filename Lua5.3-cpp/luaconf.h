@@ -33,7 +33,7 @@ And also used to define some base configure.
 #define ERROR_EXIT exit(1)
 
 
-#define LuaInteger int64_t
+#define LuaInteger long
 #define LuaNumber double
 #define MAX_INT INTMAX_MAX
 

@@ -30,6 +30,8 @@ This is used to scan the srouce and produce TOKEN for parser
 #include <vector>
 #include <string>
 #include <unordered_set>
+#include <unordered_map>
+// #include <cctype>
 #include "luaconf.h"
 
 #define FIRST_RESERVED_INDEX    257
@@ -69,17 +71,18 @@ struct Token{
 };
 
 namespace std{
+    typedef string * pString;
     template<>
-    struct hash<string*>
+    struct hash<pString>
     {
-        size_t operator() (const string* &str){
+        size_t operator() (const pString &str) const {
             return hash<string>()(*str);
         }
     };
     template<>
-    struct equal_to<string*>
+    struct equal_to<pString>
     {
-        bool operator() (const string* &lhs, const string* &rhs){
+        bool operator() (const pString &lhs, const pString &rhs) const{
             return *lhs == *rhs;
         }
     };
@@ -88,29 +91,54 @@ namespace std{
 class Lex{
 
 public:
-    Lex(char*, char);
-    Token GetNextToken();
+    Lex(char*);
+    void NextToken();
+    inline Token GetCurToken() { return curToken_; }
+    int LookAhead();
 private:
-
-    inline void Next() { curChar_ = io.GetNextChar(); }
-    inline void SaveAndNext() { singleTokenBuffer.SaveChar((char)curChar_); Next(); }
+    Token GetNextToken();
+    inline void Next() { curChar_ = io_.GetNextChar(); }
+    inline void SaveAndNext() { singleTokenBuffer_.SaveChar((char)curChar_); Next(); }
     inline bool CurIsNewLine() { return curChar_ == '\n' || curChar_ == '\r'; }
+    bool CurIsSpace();
+    bool CurIsDigit();
+    bool CurIsAlNum();
+    bool CurISHexDigit();
+    bool CurIsAlpha();
     void IncreaseLineCounter();
     int CountSep();
-    void ReadLongString(Token*, bool, int);
+    void ReadLongString(Token*, int);
     bool CheckCurChar(char);
     bool CheckCurChar(char, char);
-    void ReadShortString(Token*, char);
+    void ReadShortString(Token*, int);
+    int ReadDec();
+    int GetNextHex();
+    int ReadHex();
+    int IsKeyWord(std::string&);
+    void ReadUnicodeSaveAsUTF8();
+    void ReadNumber(Token*);
+    void LexError(const char*);
+    void LexError(const char*, int);
+    std::string* CreateString(const char*, int);
+    static int ToHex(char);
+    std::string Name2Str(int);// float/int/string/id to string for DEBUG
+    
     int curChar_;        //current character in read
     int lineCounter_;    //input line counter
     int lastLineRead_;   //line of last token 'consumed'
     Token curToken_;     //current token
     Token nextToken_;    //look ahead token
-    Buffer singleTokenBuffer;//buffer for single token str
-    IOReader io;//input stream
-    // std::string *source; //current source file name
+    Buffer singleTokenBuffer_;//buffer for single token str
+    IOReader io_;//input stream
+    std::string source_; //current source file name
     // std::string *envn;  //environment variable name
-    std::unordered_set<std::string*> strTable;
+    std::unordered_set<std::string*> strTable_;
+    std::unordered_map<std::string, int> keyWordTable_;
 };
+
+
+void DumpToken(Token&);
+
+
 
 #endif //LUACPP_LLEX_H_
